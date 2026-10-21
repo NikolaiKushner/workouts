@@ -1,12 +1,12 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Тренировки Ника</title>
+<title>Nik's Workouts</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
 <style>
-/* Layout: one narrow column for a phone in the gym — day tabs on top, exercise rows with set checkboxes below */
+/* Layout: one narrow column for a phone in the gym — language switch and day tabs on top, exercise rows with set checkboxes below */
 :root{
   --bg:#f3f4f2; --surface:#ffffff; --fg:#1d2124; --muted:#5f676c; --line:#dfe2df;
   --accent:#d9541e; --accent-soft:#fbe6dc; --done:#2f7d4f; --done-soft:#e1f1e6;
@@ -21,12 +21,18 @@
   --accent:#f0743f; --accent-soft:#3a2219; --done:#5cc184; --done-soft:#1b3326; color-scheme:dark}
 *{box-sizing:border-box}
 html,body{margin:0}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 body{background:var(--bg);color:var(--fg);font-family:var(--body);font-size:15px;line-height:1.45;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:20px 48px}
 body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
 .wrap{max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:18px}
+header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+header > div{min-width:0}
 h1{font-family:var(--display);font-weight:700;font-size:34px;line-height:1;margin:0;letter-spacing:.01em;text-transform:uppercase}
 .sub{color:var(--muted);margin:4px 0 0;font-size:14px}
+.lang{display:flex;border:1px solid var(--line);border-radius:8px;overflow:hidden;flex:none}
+.lang button{border:0;background:var(--surface);color:var(--muted);font:600 13px var(--body);padding:7px 11px;cursor:pointer;letter-spacing:.04em}
+.lang button[aria-pressed="true"]{background:var(--fg);color:var(--bg)}
 .tabs{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:8px;
   display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
 .tab{font-family:var(--display);font-weight:600;font-size:17px;text-transform:uppercase;letter-spacing:.03em;
@@ -38,10 +44,11 @@ h1{font-family:var(--display);font-weight:700;font-size:34px;line-height:1;margi
 .mode{display:flex;align-items:center;gap:12px;background:var(--accent-soft);border-radius:10px;padding:12px 14px}
 .mode label{flex:1;min-width:0;font-size:14px;cursor:pointer}
 .mode strong{display:block;font-size:15px}
-.switch{appearance:none;width:44px;height:26px;border-radius:13px;background:var(--line);position:relative;cursor:pointer;flex:none;transition:background .15s}
+.switch{appearance:none;-webkit-appearance:none;margin:0;width:44px;height:26px;border-radius:13px;background:var(--line);position:relative;cursor:pointer;flex:none;transition:background .15s}
 .switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);transition:transform .15s}
 .switch:checked{background:var(--accent)}
 .switch:checked::after{transform:translateX(18px)}
+.day{display:flex;flex-direction:column;gap:12px}
 .dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppercase;margin:0;line-height:1.05}
 .progress{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -56,7 +63,7 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppe
 .kg.reduced{color:var(--accent)}
 .unit{font-size:12px;color:var(--muted);margin-left:2px}
 .was{display:block;font-size:12px;color:var(--muted);text-decoration:line-through}
-.scheme{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.scheme{display:block;font-weight:400;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .sets{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
 .set{width:40px;height:40px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--muted);
   font-weight:600;font-size:14px;cursor:pointer;font-variant-numeric:tabular-nums}
@@ -71,104 +78,133 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppe
 </style>
 </head>
 <body>
-
 <div class="wrap">
   <header>
-    <h1>Тренировки</h1>
-    <p class="sub">Сплит на 4 дня · цель 68–72 кг · Батуми</p>
+    <div>
+      <h1 data-t="title"></h1>
+      <p class="sub" data-t="sub"></p>
+    </div>
+    <div class="lang" role="group" aria-label="Language">
+      <button id="lang-en" data-lang="en">EN</button>
+      <button id="lang-ru" data-lang="ru">RU</button>
+    </div>
   </header>
 
   <nav class="tabs" role="tablist" id="tabs"></nav>
 
   <div class="mode">
-    <label for="returnMode"><strong>Неделя возвращения</strong>Веса на ~15% ниже рабочих. Включи на первую неделю после перерыва.</label>
+    <label for="returnMode"><strong data-t="modeTitle"></strong><span data-t="modeText"></span></label>
     <input type="checkbox" class="switch" id="returnMode" checked>
   </div>
 
   <section id="day" aria-live="polite"></section>
 
-  <section class="notes">
-    <h3>Правила</h3>
-    <div class="note"><b>Прогрессия</b>Каждую неделю +1–2 повтора или +2,5 кг. Дошёл до верха диапазона во всех подходах — поднимай вес и начинай с нижней границы.</div>
-    <div class="note"><b>Время</b>45–60 минут. Больше не нужно, лучше плотнее.</div>
-    <div class="note"><b>Кардио</b>Отдельно от зала: ходьба 40–60 минут в дни отдыха, по набережной. Интервалы на Assault Runner — когда пятка заживёт.</div>
-    <div class="note"><b>Самочувствие</b>Пей больше воды. Пульс может быть выше обычного при том же весе. Если утром вялость — тренируйся ближе к 17–19.</div>
-    <div class="note"><b>Креатин</b>5 г каждый день, после тренировки с едой. В дни отдыха — с любым приёмом пищи.</div>
-  </section>
+  <section class="notes" id="notes"></section>
 </div>
 
 <script>
+const T={
+ en:{title:"Workouts",sub:"4-day split · goal 68–72 kg · Batumi",day:"Day",modeTitle:"Return week",
+  modeText:"Weights about 15% below working weights. Turn on for the first week after a break.",
+  progress:(d,t)=>`${d} of ${t} sets`,reset:"Clear checks",set:"set",kg:"kg",was:"kg",rules:"Rules",docTitle:"Nik's Workouts",
+  notes:[["Progression","Each week add 1–2 reps or 2.5 kg. When you reach the top of the range in all sets, add weight and start again from the bottom."],
+   ["Time","45–60 minutes. No need for more — keep it dense."],
+   ["Cardio","Separate from the gym: walk 40–60 minutes on rest days, along the seafront. Intervals on the Assault Runner come back when the heel heals."],
+   ["How you feel","Drink more water. Heart rate can be higher than usual at the same weight. If you feel slow in the morning, train closer to 17–19."],
+   ["Creatine","5 g every day, after training with food. On rest days, with any meal."]]},
+ ru:{title:"Тренировки",sub:"Сплит на 4 дня · цель 68–72 кг · Батуми",day:"День",modeTitle:"Неделя возвращения",
+  modeText:"Веса на ~15% ниже рабочих. Включи на первую неделю после перерыва.",
+  progress:(d,t)=>`${d} из ${t} подходов`,reset:"Сбросить отметки",set:"подход",kg:"кг",rules:"Правила",docTitle:"Тренировки Ника",
+  notes:[["Прогрессия","Каждую неделю +1–2 повтора или +2,5 кг. Дошёл до верха диапазона во всех подходах — поднимай вес и начинай с нижней границы."],
+   ["Время","45–60 минут. Больше не нужно, лучше плотнее."],
+   ["Кардио","Отдельно от зала: ходьба 40–60 минут в дни отдыха, по набережной. Интервалы на Assault Runner — когда пятка заживёт."],
+   ["Самочувствие","Пей больше воды. Пульс может быть выше обычного при том же весе. Если утром вялость — тренируйся ближе к 17–19."],
+   ["Креатин","5 г каждый день, после тренировки с едой. В дни отдыха — с любым приёмом пищи."]]}
+};
+// [en, ru] pairs
 const DAYS=[
- {id:"day1",short:"Жим",title:"Верх тела — жим",rest:"Отдых 90 сек, на жиме лёжа до 2 мин.",ex:[
-  ["Жим штанги лёжа",35,"4×8–10",4],
-  ["Тяга верхнего блока к груди",40,"4×10",4],
-  ["Жим в тренажёре на плечи",15,"3×10–12",3,"на каждую руку"],
-  ["Тяга нижнего блока (гребля)",40,"3×12",3],
-  ["Махи гантелями в стороны",7,"3×12–15",3,"гантели по 7 кг"],
-  ["Трицепс на блоке",68,"3×12",3],
-  ["Бицепс на блоке",50,"3×12",3]]},
- {id:"day2",short:"Ноги",title:"Низ тела",rest:"Отдых 90 сек, на приседе до 2 мин.",ex:[
-  ["Присед (штанга или Смит)",40,"4×8–10",4],
-  ["Румынская тяга в Смите",45,"4×10",4],
-  ["Жим ногами",45,"3×12",3],
-  ["Сгибание ног лёжа",25,"3×12",3],
-  ["Разгибание ног",30,"3×12",3],
-  ["Икры стоя",40,"3×15–20",3]]},
- {id:"day3",short:"Тяга",title:"Верх тела — тяга",rest:"Отдых 90 сек.",ex:[
-  ["Гравитрон / тяга блока обратным хватом",45,"4×8–10",4],
-  ["Жим гантелей на наклонной",15,"4×10",4,"или жим в Смите на наклонной скамье"],
-  ["Тяга гантели в наклоне",20,"3×10 на руку",3],
-  ["Бабочка / разведения в тренажёре",20,"3×12",3],
-  ["Бицепс на блоке или в тренажёре",10,"3×12",3],
-  ["Планка / подъём ног",null,"3×40–60 сек",3]]},
- {id:"day4",short:"Ноги+",title:"Ноги + кондиция",rest:"Отдых 60–90 сек.",ex:[
-  ["Жим ногами",40,"4×12",4],
-  ["Гиперэкстензия",7.5,"3×12–15",3,"с блином"],
-  ["Болгарские приседы / ягодичный мост",12.5,"3×12",3,"болгарские — если нога ок"],
-  ["Сведение бедра в тренажёре",40,"3×15",3],
-  ["Разведение бедра в тренажёре",35,"3×15",3],
-  ["Пресс: скручивания + подъём ног",null,"3×15",3],
-  ["Эллипс или велотренажёр",null,"20 мин ровно",1,"в конце тренировки"]]}
+ {id:"day1",short:["Push","Жим"],title:["Upper body — push","Верх тела — жим"],rest:["Rest 90 s, up to 2 min on bench press.","Отдых 90 сек, на жиме лёжа до 2 мин."],ex:[
+  [["Barbell bench press","Жим штанги лёжа"],35,["4×8–10"],4],
+  [["Lat pulldown to chest","Тяга верхнего блока к груди"],40,["4×10"],4],
+  [["Machine shoulder press","Жим в тренажёре на плечи"],15,["3×10–12"],3,["per arm","на каждую руку"]],
+  [["Seated cable row","Тяга нижнего блока (гребля)"],40,["3×12"],3],
+  [["Dumbbell lateral raises","Махи гантелями в стороны"],7,["3×12–15"],3,["7 kg dumbbells","гантели по 7 кг"]],
+  [["Cable triceps pushdown","Трицепс на блоке"],68,["3×12"],3],
+  [["Cable biceps curl","Бицепс на блоке"],50,["3×12"],3]]},
+ {id:"day2",short:["Legs","Ноги"],title:["Lower body","Низ тела"],rest:["Rest 90 s, up to 2 min on squats.","Отдых 90 сек, на приседе до 2 мин."],ex:[
+  [["Squat (barbell or Smith)","Присед (штанга или Смит)"],40,["4×8–10"],4],
+  [["Smith Romanian deadlift","Румынская тяга в Смите"],45,["4×10"],4],
+  [["Leg press","Жим ногами"],45,["3×12"],3],
+  [["Lying leg curl","Сгибание ног лёжа"],25,["3×12"],3],
+  [["Leg extension","Разгибание ног"],30,["3×12"],3],
+  [["Standing calf raises","Икры стоя"],40,["3×15–20"],3]]},
+ {id:"day3",short:["Pull","Тяга"],title:["Upper body — pull","Верх тела — тяга"],rest:["Rest 90 s.","Отдых 90 сек."],ex:[
+  [["Assisted pull-up / reverse-grip pulldown","Гравитрон / тяга блока обратным хватом"],45,["4×8–10"],4],
+  [["Incline dumbbell press","Жим гантелей на наклонной"],15,["4×10"],4,["or Smith incline press","или жим в Смите на наклонной скамье"]],
+  [["One-arm dumbbell row","Тяга гантели в наклоне"],20,["3×10 per arm","3×10 на руку"],3],
+  [["Pec deck / machine fly","Бабочка / разведения в тренажёре"],20,["3×12"],3],
+  [["Cable or machine biceps curl","Бицепс на блоке или в тренажёре"],10,["3×12"],3],
+  [["Plank / leg raises","Планка / подъём ног"],null,["3×40–60 s","3×40–60 сек"],3]]},
+ {id:"day4",short:["Legs+","Ноги+"],title:["Legs + conditioning","Ноги + кондиция"],rest:["Rest 60–90 s.","Отдых 60–90 сек."],ex:[
+  [["Leg press","Жим ногами"],40,["4×12"],4],
+  [["Back extension","Гиперэкстензия"],7.5,["3×12–15"],3,["with a plate","с блином"]],
+  [["Bulgarian split squat / glute bridge","Болгарские приседы / ягодичный мост"],12.5,["3×12"],3,["Bulgarian only if the foot is ok","болгарские — если нога ок"]],
+  [["Hip adduction machine","Сведение бедра в тренажёре"],40,["3×15"],3],
+  [["Hip abduction machine","Разведение бедра в тренажёре"],35,["3×15"],3],
+  [["Abs: crunches + leg raises","Пресс: скручивания + подъём ног"],null,["3×15"],3],
+  [["Elliptical or bike","Эллипс или велотренажёр"],null,["20 min steady","20 мин ровно"],1,["at the end of the session","в конце тренировки"]]]}
 ];
 const store={get(k,d){try{const v=localStorage.getItem(k);return v===null?d:JSON.parse(v)}catch(e){return d}},
   set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
-const fmt=n=>String(Math.round(n*10)/10).replace(".",",");
+let lang=store.get("lang","en"); if(!T[lang]) lang="en";
+const L=()=>lang==="ru"?1:0;
+const pick=a=>a?(a[L()]??a[0]):"";
+const fmt=n=>{const s=String(Math.round(n*10)/10);return lang==="ru"?s.replace(".",","):s};
 function reduce(w){const r=w*0.85;return w<=12.5?Math.max(1,Math.round(r)):Math.round(r/2.5)*2.5}
 let current=(location.hash||"").slice(1);
 if(!DAYS.some(d=>d.id===current))current=store.get("day","day1");
 const modeEl=document.getElementById("returnMode");
 modeEl.checked=store.get("returnMode",true);
 modeEl.addEventListener("change",()=>{store.set("returnMode",modeEl.checked);render()});
+document.querySelectorAll(".lang button").forEach(b=>b.onclick=()=>{lang=b.dataset.lang;store.set("lang",lang);renderAll()});
 
+function renderStatic(){
+  const t=T[lang];
+  document.documentElement.lang=lang;document.title=t.docTitle;
+  document.querySelectorAll("[data-t]").forEach(el=>el.textContent=t[el.dataset.t]);
+  document.querySelectorAll(".lang button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lang===lang));
+  document.getElementById("notes").innerHTML=`<h3>${t.rules}</h3>`+t.notes.map(([h,p])=>`<div class="note"><b>${h}</b>${p}</div>`).join("");
+}
 function renderTabs(){
   const t=document.getElementById("tabs");t.innerHTML="";
   DAYS.forEach((d,i)=>{const b=document.createElement("button");b.className="tab";b.id="tab-"+d.id;
     b.setAttribute("role","tab");b.setAttribute("aria-selected",d.id===current);
-    b.innerHTML=`День ${i+1}<small>${d.short}</small>`;
+    b.innerHTML=`${T[lang].day} ${i+1}<small>${pick(d.short)}</small>`;
     b.onclick=()=>{current=d.id;store.set("day",current);renderTabs();render()};t.appendChild(b)});
 }
 function render(){
-  const d=DAYS.find(x=>x.id===current),i=DAYS.indexOf(d),reduced=modeEl.checked;
+  const t=T[lang],d=DAYS.find(x=>x.id===current),i=DAYS.indexOf(d),reduced=modeEl.checked;
   const checks=store.get("checks-"+d.id,{});
   let done=0,total=0;
-  const rows=d.ex.map((e,k)=>{const [name,w,scheme,n,alt]=e;const c=checks[k]||[];
+  const rows=d.ex.map((e,k)=>{const [nm,w,sc,n,al]=e;const name=pick(nm),scheme=pick(sc),alt=pick(al);const c=checks[k]||[];
     total+=n;const cnt=c.filter(Boolean).length;done+=cnt;
     let load="";
-    if(w!==null){const shown=reduced?reduce(w):w;
-      load=`<span class="kg${reduced&&shown!==w?" reduced":""}">${fmt(shown)}<span class="unit">кг</span></span>${reduced&&shown!==w?`<span class="was">${fmt(w)} кг</span>`:""}`}
-    const sets=Array.from({length:n},(_,s)=>`<button class="set" data-ex="${k}" data-set="${s}" aria-pressed="${!!c[s]}" aria-label="${name}, подход ${s+1}">${s+1}</button>`).join("");
+    if(w!==null){const shown=reduced?reduce(w):w,chg=reduced&&shown!==w;
+      load=`<span class="kg${chg?" reduced":""}">${fmt(shown)}<span class="unit">${t.kg}</span></span>${chg?`<span class="was">${fmt(w)} ${t.kg}</span>`:""}`}
+    const sets=Array.from({length:n},(_,s)=>`<button class="set" data-ex="${k}" data-set="${s}" aria-pressed="${!!c[s]}" aria-label="${name}, ${t.set} ${s+1}">${s+1}</button>`).join("");
     return `<div class="ex${cnt===n?" complete":""}"><div class="name">${name}${alt?`<span class="alt">${alt}</span>`:""}<span class="scheme">${scheme}</span></div><div class="load">${load}</div><div class="sets">${sets}</div></div>`}).join("");
-  document.getElementById("day").innerHTML=`<div class="wrap" style="gap:12px">
-    <div class="dayhead"><h2>День ${i+1}. ${d.title}</h2><span class="progress">${done} из ${total} подходов</span></div>
-    <p class="rest">${d.rest}</p>
+  document.getElementById("day").innerHTML=`<div class="day">
+    <div class="dayhead"><h2>${t.day} ${i+1}. ${pick(d.title)}</h2><span class="progress">${t.progress(done,total)}</span></div>
+    <p class="rest">${pick(d.rest)}</p>
     <div class="list">${rows}</div>
-    <button class="reset" id="reset">Сбросить отметки</button></div>`;
+    <button class="reset" id="reset">${t.reset}</button></div>`;
   document.querySelectorAll(".set").forEach(b=>b.onclick=()=>{
     const ch=store.get("checks-"+d.id,{});const k=b.dataset.ex,s=+b.dataset.set;
     ch[k]=ch[k]||[];ch[k][s]=!ch[k][s];store.set("checks-"+d.id,ch);render()});
   document.getElementById("reset").onclick=()=>{store.set("checks-"+d.id,{});render()};
 }
-renderTabs();render();
+function renderAll(){renderStatic();renderTabs();render()}
+renderAll();
 </script>
 </body>
 </html>
