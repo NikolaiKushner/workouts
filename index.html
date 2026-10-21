@@ -74,6 +74,30 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppe
 .notes h3{font-family:var(--display);font-weight:700;font-size:20px;text-transform:uppercase;margin:6px 0 0}
 .note{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:14px}
 .note b{display:block;margin-bottom:2px}
+.tabs{grid-template-columns:repeat(5,1fr)}
+.tab.prog{background:var(--accent-soft);border-color:transparent}
+.tab.prog[aria-selected="true"]{background:var(--accent);color:var(--surface);border-color:var(--accent)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-width:0}
+.stat b{display:block;font-family:var(--display);font-size:28px;line-height:1;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.cal{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px}
+.calhead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px}
+.calhead h2{font-size:22px}
+.nav{width:36px;height:36px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--fg);font-size:18px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.wd{font-size:11px;color:var(--muted);text-align:center;text-transform:uppercase;letter-spacing:.04em;padding-bottom:2px}
+.cell{aspect-ratio:1;max-width:100%;border-radius:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-size:13px;font-variant-numeric:tabular-nums;color:var(--fg);background:var(--bg);line-height:1.1}
+.cell.empty{background:none}
+.cell.today{outline:2px solid var(--fg);outline-offset:-2px}
+.cell.done{background:var(--done);color:var(--surface);font-weight:600}
+.cell small{font-size:10px;opacity:.9;font-weight:600}
+.legend{font-size:12px;color:var(--muted);margin:10px 0 0}
+.history{display:flex;flex-direction:column}
+.hrow{display:flex;justify-content:space-between;gap:12px;padding:10px 14px;border-top:1px solid var(--line);font-size:14px;font-variant-numeric:tabular-nums}
+.hrow:first-child{border-top:0}
+.hrow span{color:var(--muted)}
 @media (prefers-reduced-motion: reduce){*{transition:none!important}}
 </style>
 </head>
@@ -92,7 +116,7 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppe
 
   <nav class="tabs" role="tablist" id="tabs"></nav>
 
-  <div class="mode">
+  <div class="mode" id="modeBox">
     <label for="returnMode"><strong data-t="modeTitle"></strong><span data-t="modeText"></span></label>
     <input type="checkbox" class="switch" id="returnMode" checked>
   </div>
@@ -106,7 +130,13 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppe
 const T={
  en:{title:"Workouts",sub:"4-day split · goal 68–72 kg · Batumi",day:"Day",modeTitle:"Return week",
   modeText:"Weights about 15% below working weights. Turn on for the first week after a break.",
-  progress:(d,t)=>`${d} of ${t} sets`,reset:"Clear checks",set:"set",kg:"kg",was:"kg",rules:"Rules",docTitle:"Nik's Workouts",
+  progress:(d,t)=>`${d} of ${t} sets`,reset:"Clear today's checks",
+  progTab:"Stats",progSmall:"calendar",progTitle:"Progress",thisWeek:"this week",thisMonth:"this month",allTime:"all time",
+  months:["January","February","March","April","May","June","July","August","September","October","November","December"],
+  wd:["Mo","Tu","We","Th","Fr","Sa","Su"],dShort:"D",
+  legend:"A day turns green when you check at least one set. D1–D4 shows which workout.",
+  history:"Recent workouts",none:"No workouts yet. Check a set on any day and it shows up here.",
+  setsN:n=>`${n} ${n===1?"set":"sets"}`,locale:"en-GB",set:"set",kg:"kg",was:"kg",rules:"Rules",docTitle:"Nik's Workouts",
   notes:[["Progression","Each week add 1–2 reps or 2.5 kg. When you reach the top of the range in all sets, add weight and start again from the bottom."],
    ["Time","45–60 minutes. No need for more — keep it dense."],
    ["Cardio","Separate from the gym: walk 40–60 minutes on rest days, along the seafront. Intervals on the Assault Runner come back when the heel heals."],
@@ -114,7 +144,13 @@ const T={
    ["Creatine","5 g every day, after training with food. On rest days, with any meal."]]},
  ru:{title:"Тренировки",sub:"Сплит на 4 дня · цель 68–72 кг · Батуми",day:"День",modeTitle:"Неделя возвращения",
   modeText:"Веса на ~15% ниже рабочих. Включи на первую неделю после перерыва.",
-  progress:(d,t)=>`${d} из ${t} подходов`,reset:"Сбросить отметки",set:"подход",kg:"кг",rules:"Правила",docTitle:"Тренировки Ника",
+  progress:(d,t)=>`${d} из ${t} подходов`,reset:"Сбросить отметки за сегодня",
+  progTab:"Итоги",progSmall:"календарь",progTitle:"Прогресс",thisWeek:"на этой неделе",thisMonth:"в этом месяце",allTime:"всего",
+  months:["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"],
+  wd:["Пн","Вт","Ср","Чт","Пт","Сб","Вс"],dShort:"Д",
+  legend:"День становится зелёным, когда ты отметил хотя бы один подход. Д1–Д4 — какая тренировка.",
+  history:"Последние тренировки",none:"Пока нет тренировок. Отметь подход в любом дне — он появится здесь.",
+  setsN:n=>`${n} подх.`,locale:"ru-RU",set:"подход",kg:"кг",rules:"Правила",docTitle:"Тренировки Ника",
   notes:[["Прогрессия","Каждую неделю +1–2 повтора или +2,5 кг. Дошёл до верха диапазона во всех подходах — поднимай вес и начинай с нижней границы."],
    ["Время","45–60 минут. Больше не нужно, лучше плотнее."],
    ["Кардио","Отдельно от зала: ходьба 40–60 минут в дни отдыха, по набережной. Интервалы на Assault Runner — когда пятка заживёт."],
@@ -161,8 +197,31 @@ const L=()=>lang==="ru"?1:0;
 const pick=a=>a?(a[L()]??a[0]):"";
 const fmt=n=>{const s=String(Math.round(n*10)/10);return lang==="ru"?s.replace(".",","):s};
 function reduce(w){const r=w*0.85;return w<=12.5?Math.max(1,Math.round(r)):Math.round(r/2.5)*2.5}
+// Dates are local "YYYY-MM-DD"
+const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
+const today=()=>iso(new Date());
+// log: { "2026-10-21": { "day1": 5 } } — sets checked per workout per date
+function getLog(){return store.get("log",{})}
+function setLogCount(date,dayId,n){const log=getLog();log[date]=log[date]||{};
+  if(n>0)log[date][dayId]=n;else delete log[date][dayId];
+  if(!Object.keys(log[date]).length)delete log[date];store.set("log",log)}
+// checks for a workout belong to one date; on a new date they start empty
+function getChecks(dayId){const raw=store.get("checks-"+dayId,null);
+  if(!raw)return {};
+  if(!raw.date){ // old format from before the calendar: count it as today
+    const n=Object.values(raw).flat().filter(Boolean).length;
+    const migrated={date:today(),sets:raw};store.set("checks-"+dayId,migrated);
+    if(n)setLogCount(today(),dayId,n);return raw}
+  return raw.date===today()?raw.sets||{}:{}}
+function saveChecks(dayId,sets){store.set("checks-"+dayId,{date:today(),sets});
+  setLogCount(today(),dayId,Object.values(sets).flat().filter(Boolean).length)}
+DAYS.forEach(d=>getChecks(d.id));
+
+const VIEWS=[...DAYS.map(d=>d.id),"progress"];
 let current=(location.hash||"").slice(1);
-if(!DAYS.some(d=>d.id===current))current=store.get("day","day1");
+if(!VIEWS.includes(current))current=store.get("day","day1");
+if(!VIEWS.includes(current))current="day1";
+let calMonth=(()=>{const n=new Date();return {y:n.getFullYear(),m:n.getMonth()}})();
 const modeEl=document.getElementById("returnMode");
 modeEl.checked=store.get("returnMode",true);
 modeEl.addEventListener("change",()=>{store.set("returnMode",modeEl.checked);render()});
@@ -175,16 +234,22 @@ function renderStatic(){
   document.querySelectorAll(".lang button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.lang===lang));
   document.getElementById("notes").innerHTML=`<h3>${t.rules}</h3>`+t.notes.map(([h,p])=>`<div class="note"><b>${h}</b>${p}</div>`).join("");
 }
+function go(v){current=v;store.set("day",current);renderTabs();render()}
 function renderTabs(){
   const t=document.getElementById("tabs");t.innerHTML="";
   DAYS.forEach((d,i)=>{const b=document.createElement("button");b.className="tab";b.id="tab-"+d.id;
     b.setAttribute("role","tab");b.setAttribute("aria-selected",d.id===current);
-    b.innerHTML=`${T[lang].day} ${i+1}<small>${pick(d.short)}</small>`;
-    b.onclick=()=>{current=d.id;store.set("day",current);renderTabs();render()};t.appendChild(b)});
+    b.innerHTML=`${T[lang].day} ${i+1}<small>${pick(d.short)}</small>`;b.onclick=()=>go(d.id);t.appendChild(b)});
+  const p=document.createElement("button");p.className="tab prog";p.id="tab-progress";
+  p.setAttribute("role","tab");p.setAttribute("aria-selected",current==="progress");
+  p.innerHTML=`${T[lang].progTab}<small>${T[lang].progSmall}</small>`;p.onclick=()=>go("progress");t.appendChild(p);
 }
 function render(){
+  document.getElementById("modeBox").hidden=current==="progress";
+  document.getElementById("notes").hidden=current==="progress";
+  if(current==="progress")return renderProgress();
   const t=T[lang],d=DAYS.find(x=>x.id===current),i=DAYS.indexOf(d),reduced=modeEl.checked;
-  const checks=store.get("checks-"+d.id,{});
+  const checks=getChecks(d.id);
   let done=0,total=0;
   const rows=d.ex.map((e,k)=>{const [nm,w,sc,n,al]=e;const name=pick(nm),scheme=pick(sc),alt=pick(al);const c=checks[k]||[];
     total+=n;const cnt=c.filter(Boolean).length;done+=cnt;
@@ -199,9 +264,45 @@ function render(){
     <div class="list">${rows}</div>
     <button class="reset" id="reset">${t.reset}</button></div>`;
   document.querySelectorAll(".set").forEach(b=>b.onclick=()=>{
-    const ch=store.get("checks-"+d.id,{});const k=b.dataset.ex,s=+b.dataset.set;
-    ch[k]=ch[k]||[];ch[k][s]=!ch[k][s];store.set("checks-"+d.id,ch);render()});
-  document.getElementById("reset").onclick=()=>{store.set("checks-"+d.id,{});render()};
+    const ch=getChecks(d.id);const k=b.dataset.ex,s=+b.dataset.set;
+    ch[k]=ch[k]||[];ch[k][s]=!ch[k][s];saveChecks(d.id,ch);render()});
+  document.getElementById("reset").onclick=()=>{saveChecks(d.id,{});render()};
+}
+function renderProgress(){
+  const t=T[lang],log=getLog(),dates=Object.keys(log).sort();
+  const now=new Date(),todayIso=today();
+  const monday=new Date(now);monday.setDate(now.getDate()-((now.getDay()+6)%7));const monIso=iso(monday);
+  const monthPrefix=todayIso.slice(0,7);
+  const week=dates.filter(x=>x>=monIso&&x<=todayIso).length;
+  const month=dates.filter(x=>x.startsWith(monthPrefix)).length;
+  const {y,m}=calMonth;
+  const first=new Date(y,m,1),days=new Date(y,m+1,0).getDate(),lead=(first.getDay()+6)%7;
+  let cells=t.wd.map(w=>`<div class="wd">${w}</div>`).join("");
+  for(let i=0;i<lead;i++)cells+=`<div class="cell empty"></div>`;
+  for(let dn=1;dn<=days;dn++){const key=iso(new Date(y,m,dn)),e=log[key];
+    const tag=e?Object.keys(e).map(id=>t.dShort+(DAYS.findIndex(x=>x.id===id)+1)).join(" "):"";
+    cells+=`<div class="cell${e?" done":""}${key===todayIso?" today":""}">${dn}${tag?`<small>${tag}</small>`:""}</div>`}
+  const fmtDate=k=>{const [yy,mm,dd]=k.split("-").map(Number);return new Date(yy,mm-1,dd).toLocaleDateString(t.locale,{weekday:"short",day:"numeric",month:"short"})};
+  const hist=dates.slice(-8).reverse().map(k=>{const e=log[k];
+    const what=Object.entries(e).map(([id,n])=>{const d=DAYS.find(x=>x.id===id);return `${t.day} ${DAYS.indexOf(d)+1} · ${pick(d.short)} · ${t.setsN(n)}`}).join("; ");
+    return `<div class="hrow"><b>${fmtDate(k)}</b><span>${what}</span></div>`}).join("");
+  document.getElementById("day").innerHTML=`<div class="day">
+    <div class="dayhead"><h2>${t.progTitle}</h2></div>
+    <div class="stats">
+      <div class="stat"><b>${week}</b><span>${t.thisWeek}</span></div>
+      <div class="stat"><b>${month}</b><span>${t.thisMonth}</span></div>
+      <div class="stat"><b>${dates.length}</b><span>${t.allTime}</span></div>
+    </div>
+    <div class="cal">
+      <div class="calhead"><button class="nav" id="prevM" aria-label="‹">‹</button><h2>${t.months[m]} ${y}</h2><button class="nav" id="nextM" aria-label="›">›</button></div>
+      <div class="grid">${cells}</div>
+      <p class="legend">${t.legend}</p>
+    </div>
+    <h3 style="font-family:var(--display);font-size:20px;text-transform:uppercase;margin:6px 0 0">${t.history}</h3>
+    <div class="list history">${hist||`<div class="hrow"><span>${t.none}</span></div>`}</div>
+  </div>`;
+  document.getElementById("prevM").onclick=()=>{calMonth=m===0?{y:y-1,m:11}:{y,m:m-1};render()};
+  document.getElementById("nextM").onclick=()=>{calMonth=m===11?{y:y+1,m:0}:{y,m:m+1};render()};
 }
 function renderAll(){renderStatic();renderTabs();render()}
 renderAll();
