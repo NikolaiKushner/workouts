@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Nik's Workouts</title>
-<meta name="description" content="Personal 4-day gym split tracker: working weights, set checklist, return-week mode and a progress calendar. EN/RU.">
+<meta name="description" content="Personal 4-day gym split tracker: working weights, set checklist and a progress calendar. EN/RU.">
 <meta name="keywords" content="workout tracker, gym, fitness, strength training, 4-day split, progress calendar">
 <meta name="author" content="Nik">
 <meta name="theme-color" content="#f3f4f2" media="(prefers-color-scheme: light)">
@@ -54,13 +54,6 @@ h1{font-family:var(--display);font-weight:700;font-size:34px;line-height:1;margi
 .tab[aria-selected="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
 .tab[aria-selected="true"] small{color:var(--bg);opacity:.75}
 .tab:focus-visible,button:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.mode{display:flex;align-items:center;gap:12px;background:var(--accent-soft);border-radius:10px;padding:12px 14px}
-.mode label{flex:1;min-width:0;font-size:14px;cursor:pointer}
-.mode strong{display:block;font-size:15px}
-.switch{appearance:none;-webkit-appearance:none;margin:0;width:44px;height:26px;border-radius:13px;background:var(--line);position:relative;cursor:pointer;flex:none;transition:background .15s}
-.switch::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:var(--surface);transition:transform .15s}
-.switch:checked{background:var(--accent)}
-.switch:checked::after{transform:translateX(18px)}
 .day{display:flex;flex-direction:column;gap:12px}
 .dayhead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
 h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppercase;margin:0;line-height:1.05}
@@ -73,9 +66,7 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppe
 .alt{display:block;font-weight:400;font-size:13px;color:var(--muted)}
 .load{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
 .kg{font-family:var(--display);font-weight:700;font-size:24px;line-height:1}
-.kg.reduced{color:var(--accent)}
 .unit{font-size:12px;color:var(--muted);margin-left:2px}
-.was{display:block;font-size:12px;color:var(--muted);text-decoration:line-through}
 .scheme{display:block;font-weight:400;font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
 .sets{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap}
 .set{width:40px;height:40px;border-radius:8px;border:1.5px solid var(--line);background:var(--bg);color:var(--muted);
@@ -129,11 +120,6 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppe
 
   <nav class="tabs" role="tablist" id="tabs"></nav>
 
-  <div class="mode" id="modeBox">
-    <label for="returnMode"><strong data-t="modeTitle"></strong><span data-t="modeText"></span></label>
-    <input type="checkbox" class="switch" id="returnMode" checked>
-  </div>
-
   <section id="day" aria-live="polite"></section>
 
   <section class="notes" id="notes"></section>
@@ -141,8 +127,7 @@ h2{font-family:var(--display);font-weight:700;font-size:26px;text-transform:uppe
 
 <script>
 const T={
- en:{title:"Workouts",sub:"4-day split · goal 68–72 kg · Batumi",day:"Day",modeTitle:"Return week",
-  modeText:"Weights about 15% below working weights. Turn on for the first week after a break.",
+ en:{title:"Workouts",sub:"4-day split · goal 68–72 kg · Batumi",day:"Day",
   progress:(d,t)=>`${d} of ${t} sets`,reset:"Clear today's checks",
   progTab:"Stats",progSmall:"calendar",progTitle:"Progress",thisWeek:"this week",thisMonth:"this month",allTime:"all time",
   months:["January","February","March","April","May","June","July","August","September","October","November","December"],
@@ -155,8 +140,7 @@ const T={
    ["Cardio","Separate from the gym: walk 40–60 minutes on rest days, along the seafront. Intervals on the Assault Runner come back when the heel heals."],
    ["How you feel","Drink more water. Heart rate can be higher than usual at the same weight. If you feel slow in the morning, train closer to 17–19."],
    ["Creatine","5 g every day, after training with food. On rest days, with any meal."]]},
- ru:{title:"Тренировки",sub:"Сплит на 4 дня · цель 68–72 кг · Батуми",day:"День",modeTitle:"Неделя возвращения",
-  modeText:"Веса на ~15% ниже рабочих. Включи на первую неделю после перерыва.",
+ ru:{title:"Тренировки",sub:"Сплит на 4 дня · цель 68–72 кг · Батуми",day:"День",
   progress:(d,t)=>`${d} из ${t} подходов`,reset:"Сбросить отметки за сегодня",
   progTab:"Итоги",progSmall:"календарь",progTitle:"Прогресс",thisWeek:"на этой неделе",thisMonth:"в этом месяце",allTime:"всего",
   months:["Январь","Февраль","Март","Апрель","Май","Июнь","Июль","Август","Сентябрь","Октябрь","Ноябрь","Декабрь"],
@@ -209,7 +193,6 @@ let lang=store.get("lang","en"); if(!T[lang]) lang="en";
 const L=()=>lang==="ru"?1:0;
 const pick=a=>a?(a[L()]??a[0]):"";
 const fmt=n=>{const s=String(Math.round(n*10)/10);return lang==="ru"?s.replace(".",","):s};
-function reduce(w){const r=w*0.85;return w<=12.5?Math.max(1,Math.round(r)):Math.round(r/2.5)*2.5}
 // Dates are local "YYYY-MM-DD"
 const iso=d=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;
 const today=()=>iso(new Date());
@@ -235,9 +218,6 @@ let current=(location.hash||"").slice(1);
 if(!VIEWS.includes(current))current=store.get("day","day1");
 if(!VIEWS.includes(current))current="day1";
 let calMonth=(()=>{const n=new Date();return {y:n.getFullYear(),m:n.getMonth()}})();
-const modeEl=document.getElementById("returnMode");
-modeEl.checked=store.get("returnMode",true);
-modeEl.addEventListener("change",()=>{store.set("returnMode",modeEl.checked);render()});
 document.querySelectorAll(".lang button").forEach(b=>b.onclick=()=>{lang=b.dataset.lang;store.set("lang",lang);renderAll()});
 
 function renderStatic(){
@@ -258,17 +238,15 @@ function renderTabs(){
   p.innerHTML=`${T[lang].progTab}<small>${T[lang].progSmall}</small>`;p.onclick=()=>go("progress");t.appendChild(p);
 }
 function render(){
-  document.getElementById("modeBox").hidden=current==="progress";
   document.getElementById("notes").hidden=current==="progress";
   if(current==="progress")return renderProgress();
-  const t=T[lang],d=DAYS.find(x=>x.id===current),i=DAYS.indexOf(d),reduced=modeEl.checked;
+  const t=T[lang],d=DAYS.find(x=>x.id===current),i=DAYS.indexOf(d);
   const checks=getChecks(d.id);
   let done=0,total=0;
   const rows=d.ex.map((e,k)=>{const [nm,w,sc,n,al]=e;const name=pick(nm),scheme=pick(sc),alt=pick(al);const c=checks[k]||[];
     total+=n;const cnt=c.filter(Boolean).length;done+=cnt;
     let load="";
-    if(w!==null){const shown=reduced?reduce(w):w,chg=reduced&&shown!==w;
-      load=`<span class="kg${chg?" reduced":""}">${fmt(shown)}<span class="unit">${t.kg}</span></span>${chg?`<span class="was">${fmt(w)} ${t.kg}</span>`:""}`}
+    if(w!==null)load=`<span class="kg">${fmt(w)}<span class="unit">${t.kg}</span></span>`;
     const sets=Array.from({length:n},(_,s)=>`<button class="set" data-ex="${k}" data-set="${s}" aria-pressed="${!!c[s]}" aria-label="${name}, ${t.set} ${s+1}">${s+1}</button>`).join("");
     return `<div class="ex${cnt===n?" complete":""}"><div class="name">${name}${alt?`<span class="alt">${alt}</span>`:""}<span class="scheme">${scheme}</span></div><div class="load">${load}</div><div class="sets">${sets}</div></div>`}).join("");
   document.getElementById("day").innerHTML=`<div class="day">

@@ -8,7 +8,6 @@ A personal gym tracker for a 4-day split. One HTML file, no backend, no build st
 
 - **4-day split** — upper push, lower body, upper pull, legs + conditioning. Each exercise shows the working weight and the sets × reps scheme.
 - **Set checklist** — tap a set number to mark it done. An exercise turns green when all its sets are done.
-- **Return week** — a toggle that shows weights about 15% below working weights, for the first week after a break.
 - **Progress calendar** — the Stats tab shows a month calendar. A day turns green when at least one set is checked, with a D1–D4 label for the workout. Also shows workouts this week, this month and all time, plus a list of recent sessions.
 - **English and Russian** — EN/RU switch in the header. English is the default.
 - **Light and dark theme** — follows the system setting.
@@ -22,7 +21,6 @@ Everything lives in the browser's `localStorage`. Nothing is sent anywhere.
 | --- | --- |
 | `lang` | `"en"` or `"ru"` |
 | `day` | Last opened tab |
-| `returnMode` | Return-week toggle |
 | `checks-day1` … `checks-day4` | Set checks for the current date: `{ date, sets }` |
 | `log` | Workout log: `{ "2026-10-21": { "day1": 5 } }` — sets checked per workout per date |
 
